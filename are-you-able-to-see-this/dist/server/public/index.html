@@ -1,0 +1,2397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Delivery Checkout Recreation</title>
+    <style>
+      :root {
+        --bg: #f8f8f9;
+        --surface: #ffffff;
+        --text: #313131;
+        --headline: #00204d;
+        --muted: #5f5f5f;
+        --placeholder: #767676;
+        --soft: #f8f8f9;
+        --line: #e2e3e6;
+        --line-strong: #a3a3a3;
+        --selected: #0054c8;
+        --selected-soft: #e6eefa;
+        --black: #00204d;
+        --danger: #d21d3a;
+        --shadow: 0 3px 8px rgba(0, 32, 77, 0.15);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Moonpig, "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 14px;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--surface);
+      }
+
+      .site-header img {
+        display: block;
+        width: min(390px, 100%);
+        height: auto;
+        margin: 0 auto;
+      }
+
+      main {
+        width: min(390px, 100vw);
+        margin: 0 auto;
+        padding: 0 0 88px;
+      }
+
+      h1 {
+        margin: 0 0 31px;
+        color: var(--headline);
+        font-size: 20px;
+        line-height: 28px;
+        font-weight: 700;
+      }
+
+      .checkout {
+        width: 100%;
+      }
+
+      .step-inner {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 12px;
+        padding: 17px 0;
+      }
+
+      .step-inner > div {
+        min-width: 0;
+      }
+
+      .step-rail {
+        position: relative;
+        min-height: 28px;
+      }
+
+      .step.expanded:not(:last-child) .step-rail::after {
+        content: "";
+        position: absolute;
+        top: 42px;
+        bottom: -18px;
+        left: 11px;
+        width: 0.5px;
+        border-radius: 999px;
+        background: var(--black);
+      }
+
+      .step-dot {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        margin-top: 2px;
+        border-radius: 999px;
+        background: var(--black);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1;
+      }
+
+      .step.expanded .step-dot {
+        outline: 2px solid #0797ff;
+        outline-offset: 2px;
+      }
+
+      .step.done .step-dot {
+        font-size: 13px;
+      }
+
+      .step-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .step-title {
+        margin: 0;
+        color: var(--headline);
+        font-weight: 700;
+        line-height: 24px;
+      }
+
+      .summary {
+        margin: 1px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: pre-line;
+      }
+
+      .link-btn {
+        border: 0;
+        background: transparent;
+        color: var(--selected);
+        padding: 1px 0;
+        font-size: 13px;
+      }
+
+      .panel {
+        margin-top: 12px;
+        min-width: 0;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+
+      .text-input {
+        width: 100%;
+        height: 52px;
+        border: 2px solid var(--line-strong);
+        border-radius: 8px;
+        background: var(--surface);
+        outline: none;
+        padding: 12px 38px 12px 12px;
+        color: var(--text);
+        font-size: 16px;
+        transition: border-color 0.16s ease, box-shadow 0.16s ease;
+      }
+
+      .text-input:focus {
+        border-color: var(--selected);
+        box-shadow: inset 0 0 0 1px var(--selected);
+      }
+
+      .text-input::placeholder {
+        color: var(--placeholder);
+      }
+
+      .clear-btn,
+      .search-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        height: 18px;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: #747474;
+        line-height: 18px;
+        text-align: center;
+      }
+
+      .search-icon {
+        left: 11px;
+        right: auto;
+        pointer-events: none;
+      }
+
+      .search-icon::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 2px;
+        width: 8px;
+        height: 8px;
+        border: 1.5px solid currentColor;
+        border-radius: 999px;
+      }
+
+      .search-icon::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        top: 11px;
+        width: 6px;
+        height: 1.5px;
+        border-radius: 999px;
+        background: currentColor;
+        transform: rotate(45deg);
+        transform-origin: left center;
+      }
+
+      .with-search {
+        padding-left: 38px;
+      }
+
+      .complete-hint {
+        margin: 7px 0 9px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .enter-symbol {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        margin-left: auto;
+        border-radius: 5px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      kbd {
+        display: inline-block;
+        min-width: 26px;
+        border: 1px solid var(--line-strong);
+        border-radius: 4px;
+        background: #f6f6f6;
+        padding: 0 5px 1px;
+        color: #717171;
+        font-family: inherit;
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .suggestions {
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        list-style: none;
+      }
+
+      .empty-suggestions {
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        margin-top: 8px;
+        padding: 20px 16px 16px;
+        border: 2px solid var(--line-strong);
+        border-radius: 9px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .empty-suggestions .primary-btn {
+        min-height: 40px;
+        padding: 7px 12px;
+        font-size: 14px;
+      }
+
+      .create-contact {
+        display: grid;
+        gap: 14px;
+      }
+
+      .choice-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .chip {
+        min-height: 28px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+
+      .chip.selected {
+        border-color: var(--selected);
+        background: var(--selected);
+        color: #fff;
+        box-shadow: none;
+      }
+
+      .optional-questions {
+        display: grid;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px;
+        background: var(--surface);
+      }
+
+      .optional-heading {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .help-trigger {
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--headline);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .help-popover {
+        position: absolute;
+        left: 0;
+        top: calc(100% + 8px);
+        z-index: 10;
+        display: none;
+        width: min(320px, calc(100vw - 56px));
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 12px;
+        color: var(--text);
+      }
+
+      .help-popover strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 13px;
+      }
+
+      .help-popover span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .help-trigger:hover + .help-popover,
+      .help-trigger:focus + .help-popover {
+        display: block;
+      }
+
+      .mini-label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 12px;
+        font-weight: 560;
+      }
+
+      .suggestion {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        width: 100%;
+        min-height: 52px;
+        border: 0;
+        background: var(--surface);
+        padding: 10px 14px;
+        text-align: left;
+      }
+
+      .suggestion.active,
+      .suggestion:hover {
+        background: var(--selected-soft);
+      }
+
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        border-radius: 999px;
+        background: var(--selected-soft);
+        color: var(--headline);
+        font-size: 12px;
+        font-weight: 520;
+      }
+
+      mark {
+        background: transparent;
+        color: inherit;
+        font-weight: 750;
+      }
+
+      .section-label {
+        margin: 0 0 4px;
+        font-size: 15px;
+        color: var(--headline);
+        font-weight: 700;
+      }
+
+      .section-caption {
+        margin: -2px 0 11px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .address-area {
+        display: grid;
+        gap: 16px;
+      }
+
+      .branch-question {
+        display: grid;
+        gap: 10px;
+      }
+
+      .branch-question-title {
+        display: none;
+        margin: 0;
+        color: var(--headline);
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 24px;
+      }
+
+      .branch-options {
+        display: grid;
+        gap: 28px;
+      }
+
+      .branch-item {
+        display: grid;
+        gap: 10px;
+      }
+
+      .branch-option {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+        color: inherit;
+        text-align: left;
+      }
+
+      .branch-option.selected {
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .branch-title {
+        display: block;
+        color: var(--headline);
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 24px;
+      }
+
+      .branch-copy {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 22px;
+      }
+
+      .branch-panel {
+        overflow: hidden;
+        animation: slide-open 0.24s ease both;
+      }
+
+      @keyframes slide-open {
+        from {
+          max-height: 0;
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          max-height: 900px;
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .or-divider {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 12px;
+        margin: 2px 0;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+      }
+
+      .or-divider::before,
+      .or-divider::after {
+        content: "";
+        height: 1px;
+        background: var(--line);
+      }
+
+      .address-stack,
+      .timing-stack,
+      .lookup-results,
+      .payment-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .add-card,
+      .address-card,
+      .timing-card {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        border: 2px solid var(--line-strong);
+        border-radius: 10px;
+        background: var(--surface);
+        color: inherit;
+        box-shadow: var(--shadow);
+      }
+
+      .add-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 52px;
+        padding: 14px 16px;
+        text-align: left;
+      }
+
+      .selected {
+        border-color: var(--selected);
+        background: var(--selected-soft);
+        box-shadow: inset 0 0 0 2px var(--selected), var(--shadow);
+      }
+
+      .icon-circle {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        color: #545454;
+        flex: 0 0 20px;
+        font-size: 16px;
+        line-height: 1;
+      }
+
+      .selected .icon-circle,
+      .expanded-card .icon-circle {
+        border-color: var(--selected);
+        background: var(--selected);
+        color: #fff;
+      }
+
+      .add-title {
+        display: block;
+        color: var(--headline);
+        font-weight: 700;
+      }
+
+      .add-subtitle {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .address-card {
+        display: grid;
+        grid-template-columns: 24px 1fr 32px;
+        gap: 12px;
+        min-height: 108px;
+        padding: 17px 14px 16px 16px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .radio-dot {
+        position: relative;
+        width: 24px;
+        height: 24px;
+        margin-top: 1px;
+        border: 2px solid var(--line-strong);
+        border-radius: 999px;
+        background: var(--surface);
+      }
+
+      .selected .radio-dot {
+        border-color: var(--selected);
+      }
+
+      .selected .radio-dot::after {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border-radius: inherit;
+        background: var(--selected);
+      }
+
+      .card-kicker {
+        margin-bottom: 7px;
+        color: var(--headline);
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .address-lines {
+        display: grid;
+        gap: 2px;
+        color: var(--text);
+        font-size: 16px;
+        line-height: 24px;
+      }
+
+      .address-lines strong {
+        color: #202020;
+        font-weight: 520;
+      }
+
+      .dots-btn {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: #777;
+      }
+
+      .dots-btn:hover {
+        background: #f3f3f3;
+        color: var(--text);
+      }
+
+      .dot-stack,
+      .dot-stack::before,
+      .dot-stack::after {
+        display: block;
+        width: 3px;
+        height: 3px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .dot-stack {
+        position: relative;
+      }
+
+      .dot-stack::before,
+      .dot-stack::after {
+        content: "";
+        position: absolute;
+        left: 0;
+      }
+
+      .dot-stack::before {
+        top: -6px;
+      }
+
+      .dot-stack::after {
+        top: 6px;
+      }
+
+      .menu {
+        position: absolute;
+        z-index: 5;
+        right: 12px;
+        top: calc(100% - 14px);
+        width: 144px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .menu button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        border: 0;
+        background: #fff;
+        padding: 10px 14px;
+        text-align: left;
+      }
+
+      .menu button:hover {
+        background: #f6f6f6;
+      }
+
+      .menu .danger {
+        color: var(--danger);
+      }
+
+      .menu-icon {
+        position: relative;
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        flex: 0 0 14px;
+        color: currentColor;
+      }
+
+      .menu-icon.edit::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 7px;
+        width: 11px;
+        height: 3px;
+        border: 1.5px solid currentColor;
+        border-radius: 2px;
+        transform: rotate(-45deg);
+      }
+
+      .menu-icon.duplicate::before,
+      .menu-icon.duplicate::after {
+        content: "";
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border: 1.4px solid currentColor;
+        border-radius: 2px;
+      }
+
+      .menu-icon.duplicate::before {
+        left: 1px;
+        top: 1px;
+      }
+
+      .menu-icon.duplicate::after {
+        left: 5px;
+        top: 5px;
+        background: #fff;
+      }
+
+      .menu-icon.delete::before,
+      .menu-icon.delete::after {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 6px;
+        width: 10px;
+        height: 1.5px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .menu-icon.delete::before {
+        transform: rotate(45deg);
+      }
+
+      .menu-icon.delete::after {
+        transform: rotate(-45deg);
+      }
+
+      .expanded-card {
+        display: block;
+        padding: 16px;
+      }
+
+      .expanded-head {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+        padding-bottom: 8px;
+        overflow: visible;
+      }
+
+      .lookup-results {
+        margin-top: 8px;
+      }
+
+      .lookup-card {
+        width: 100%;
+        border: 2px solid var(--line-strong);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 10px 12px;
+        text-align: left;
+        line-height: 1.35;
+      }
+
+      .lookup-card:hover {
+        background: #f8f8f8;
+      }
+
+      .lookup-empty {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--headline);
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 24px;
+      }
+
+      .optional {
+        margin-left: 4px;
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .inline-link {
+        width: fit-content;
+        border: 0;
+        background: transparent;
+        color: var(--selected);
+        padding: 0;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .inline-link:hover {
+        text-decoration: underline;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-top: 1px;
+      }
+
+      .form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        background: var(--surface);
+        padding-top: 8px;
+        padding-bottom: 4px;
+      }
+
+      .primary-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 52px;
+        border: 2px solid var(--selected);
+        border-radius: 8px;
+        background: var(--selected);
+        color: #fff;
+        padding: 10px 16px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .ghost-btn {
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        padding: 6px 0;
+      }
+
+      .continue-btn {
+        width: 100%;
+        margin-top: 14px;
+      }
+
+      .timing-card {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 70px;
+        padding: 16px;
+        text-align: left;
+      }
+
+      .timing-title {
+        display: block;
+        margin: 0;
+        color: var(--headline);
+        font-weight: 700;
+      }
+
+      .timing-subtitle {
+        display: block;
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .price {
+        font-weight: 620;
+      }
+
+      .date-picker {
+        margin-top: 12px;
+      }
+
+      .date-picker h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+
+      .dates {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        max-width: 100%;
+        padding: 1px 1px 3px;
+      }
+
+      .date-tile {
+        display: grid;
+        place-items: center;
+        width: 72px;
+        min-width: 72px;
+        min-height: 74px;
+        border: 2px solid var(--line-strong);
+        border-radius: 9px;
+        background: var(--surface);
+        color: var(--text);
+        text-align: center;
+      }
+
+      .date-tile.selected {
+        border-color: var(--selected);
+        background: var(--selected-soft);
+        box-shadow: inset 0 0 0 2px var(--selected);
+      }
+
+      .date-tile span {
+        display: block;
+      }
+
+      .date-day {
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .date-num {
+        margin-top: 2px;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .date-price {
+        margin-top: 5px;
+        color: #686868;
+        font-size: 12px;
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        transform: translateX(-50%) translateY(18px);
+        opacity: 0;
+        pointer-events: none;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: var(--shadow);
+        padding: 10px 14px;
+        color: #222;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .plus-card {
+        border: 2px solid var(--line-strong);
+        border-radius: 10px;
+        padding: 16px;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .plus-card.selected {
+        border-color: var(--selected);
+        background: var(--selected-soft);
+        box-shadow: inset 0 0 0 2px var(--selected);
+      }
+
+      .plus-card-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .plus-card-head .step-title {
+        margin: 0;
+      }
+
+      .plus-price {
+        margin: 8px 0 0;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .plus-list {
+        display: grid;
+        gap: 8px;
+        margin: 14px 0 0;
+        padding: 0;
+        list-style: none;
+        color: #4d4d4d;
+        font-size: 13px;
+      }
+
+      .payment-card {
+        border: 2px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+        background: var(--surface);
+      }
+
+      .payment-methods {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .payment-method {
+        display: grid;
+        grid-template-columns: 18px 1fr;
+        gap: 8px;
+        align-items: center;
+        min-height: 64px;
+        border: 2px solid var(--line-strong);
+        border-radius: 6px;
+        background: var(--surface);
+        padding: 10px 12px;
+        color: #4b5563;
+        text-align: left;
+      }
+
+      .payment-method.selected {
+        border-color: var(--selected);
+        background: var(--selected-soft);
+        box-shadow: inset 0 0 0 2px var(--selected);
+        color: var(--selected);
+      }
+
+      .payment-method .radio-dot {
+        width: 16px;
+        height: 16px;
+      }
+
+      .payment-method .radio-dot::after {
+        inset: 4px;
+      }
+
+      .payment-icon {
+        position: relative;
+        display: block;
+        width: 18px;
+        height: 16px;
+        margin-bottom: 3px;
+        color: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .payment-icon.saved::before,
+      .payment-icon.card::before {
+        content: "";
+        position: absolute;
+        left: 1px;
+        top: 2px;
+        width: 16px;
+        height: 11px;
+        border-radius: 2px;
+        background: currentColor;
+      }
+
+      .payment-icon.card::after {
+        content: "";
+        position: absolute;
+        left: 1px;
+        top: 5px;
+        width: 16px;
+        height: 2px;
+        background: #fff;
+        opacity: 0.7;
+      }
+
+      .payment-icon.paypal {
+        color: #123f9f;
+      }
+
+      .saved-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .saved-card-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .card-brand {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 26px;
+        border-radius: 3px;
+        background: #111;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .see-more {
+        border: 0;
+        background: transparent;
+        color: #075fd4;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .order-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .order-row:last-child {
+        border-bottom: 0;
+        font-weight: 700;
+      }
+
+      .basket-page {
+        display: grid;
+        justify-items: center;
+        background: var(--surface);
+      }
+
+      .basket-content-img,
+      .checkout-button-img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .checkout-image-button {
+        display: block;
+        width: calc(100% - 24px);
+        margin: 0 12px 28px;
+        border: 0;
+        background: transparent;
+        padding: 0;
+      }
+
+      .end-screen {
+        display: grid;
+        gap: 8px;
+        min-height: 360px;
+        place-content: center;
+        padding: 32px;
+        text-align: center;
+      }
+
+      .end-screen h1 {
+        margin: 0;
+      }
+
+      .end-screen p {
+        margin: 0;
+        color: var(--headline);
+        font-size: 18px;
+      }
+
+      @media (max-width: 680px) {
+        main {
+          width: min(448px, calc(100vw - 28px));
+          padding-top: 24px;
+        }
+
+        h1 {
+          margin-bottom: 28px;
+        }
+
+        .step-inner {
+          grid-template-columns: 24px minmax(0, 1fr);
+        }
+
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header" aria-label="Moonpig navigation">
+      <img id="site-header-image" src="assets/header.png" alt="Moonpig navigation with search" />
+    </header>
+    <main>
+      <section class="checkout" aria-label="Delivery checkout" id="checkout"></section>
+    </main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const contacts = [
+        { name: "Adam Jones", occasion: "Birthday" },
+        { name: "Amelia Anderson", occasion: "Birthday" },
+        { name: "Ava Rodriguez", occasion: "Christmas" },
+        { name: "Benjamin Taylor", occasion: "Anniversary" },
+        { name: "Charlotte Brown", occasion: "Wedding" },
+        { name: "Ethan Thompson", occasion: "Thank you" },
+        { name: "Harper Moore", occasion: "Just because" }
+      ];
+
+      const occasions = ["Birthday", "Christmas", "Anniversary", "Wedding", "Thank you", "Just because"];
+      const relationships = ["Mum", "Dad", "Uncle", "Auntie", "Brother", "Sister", "Friend", "Partner"];
+
+      const cardPrice = 3.89;
+      const deliveryPrices = {
+        asap: 2.79,
+        flexible: 1.90,
+        date: 1.90
+      };
+      const dateFormatter = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+      const dayFormatter = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
+
+      function buildDeliveryDates() {
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        return Array.from({ length: 8 }, (_, index) => {
+          const date = new Date(today);
+          date.setDate(today.getDate() + index + 1);
+          return [dayFormatter.format(date), dateFormatter.format(date), "&pound;1.90"];
+        });
+      }
+
+      const dates = buildDeliveryDates();
+
+      const myAddresses = [
+        {
+          id: "home",
+          label: "Home",
+          lines: ["48 Rivington St,", "London", "EC2A 3LX", "United Kingdom"]
+        }
+      ];
+
+      const directAddresses = [];
+
+      const lookupAddresses = [
+        {
+          id: "lookup-1",
+          label: "Home",
+          lines: ["48 Rivington St,", "London", "EC2A 3LX", "United Kingdom"]
+        },
+        {
+          id: "lookup-2",
+          label: "Studio",
+          lines: ["Tea Building", "56 Shoreditch High St,", "London", "E1 6JJ", "United Kingdom"]
+        },
+        {
+          id: "lookup-3",
+          label: "Office",
+          lines: ["1 Phipp St,", "London", "EC2A 4PS", "United Kingdom"]
+        },
+        {
+          id: "lookup-4",
+          label: "Manchester",
+          lines: ["12 Back Hill,", "Manchester", "M4 1FR", "United Kingdom"]
+        },
+        {
+          id: "lookup-5",
+          label: "Downing Street",
+          lines: ["10 Downing Street,", "London", "SW1A 2AA", "United Kingdom"]
+        }
+      ];
+
+      const state = {
+        screen: "basket",
+        activeStep: 1,
+        selectedContact: "",
+        selectedOccasion: "",
+        selectedRelationship: "",
+        search: "",
+        contactMode: "search",
+        newFirstName: "",
+        newLastName: "",
+        newOccasion: "",
+        newRelationship: "",
+        selectedAddress: "",
+        destination: "direct",
+        addressMode: "",
+        editingAddressId: "",
+        manualAddress: false,
+        findAddressQuery: "",
+        manualLabel: "",
+        manualLine1: "",
+        manualLine2: "",
+        manualCity: "",
+        manualPostcode: "",
+        manualCountry: "United Kingdom",
+        openMenu: "",
+        timing: "asap",
+        selectedDate: 0,
+        plus: "skip",
+        paymentMethod: "saved"
+      };
+
+      const checkout = document.getElementById("checkout");
+      const toast = document.getElementById("toast");
+      let focusSearchAfterRender = false;
+      let focusAddressAfterRender = false;
+
+      function initials(name) {
+        return name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+      }
+
+      function possessive(name) {
+        return name.endsWith("s") ? `${name}'` : `${name}'s`;
+      }
+
+      function lowerFirst(text) {
+        if (!text) return "";
+        return `${text[0].toLowerCase()}${text.slice(1)}`;
+      }
+
+      function normalize(text) {
+        return text.trim().replace(/\s+/g, " ").toLowerCase();
+      }
+
+      function escapeHtml(text) {
+        return String(text).replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+        })[char]);
+      }
+
+      function highlight(name, query) {
+        if (!query) return escapeHtml(name);
+        const index = name.toLowerCase().indexOf(query.toLowerCase());
+        if (index < 0) return escapeHtml(name);
+        const before = escapeHtml(name.slice(0, index));
+        const match = escapeHtml(name.slice(index, index + query.length));
+        const after = escapeHtml(name.slice(index + query.length));
+        return `${before}<mark>${match}</mark>${after}`;
+      }
+
+      function addressListForDestination(destination) {
+        return destination === "direct" ? directAddresses : myAddresses;
+      }
+
+      function findAddressEntry(id) {
+        const mineIndex = myAddresses.findIndex((item) => item.id === id);
+        if (mineIndex >= 0) return { address: myAddresses[mineIndex], list: myAddresses, destination: "mine", index: mineIndex };
+        const directIndex = directAddresses.findIndex((item) => item.id === id);
+        if (directIndex >= 0) return { address: directAddresses[directIndex], list: directAddresses, destination: "direct", index: directIndex };
+        return null;
+      }
+
+      function findAddressById(id) {
+        const entry = findAddressEntry(id);
+        return entry ? entry.address : myAddresses[0] || directAddresses[0] || { label: "address", lines: [] };
+      }
+
+      function resetManualAddressFields() {
+        state.editingAddressId = "";
+        state.manualLabel = "";
+        state.manualLine1 = "";
+        state.manualLine2 = "";
+        state.manualCity = "";
+        state.manualPostcode = "";
+        state.manualCountry = "United Kingdom";
+      }
+
+      function seedManualAddressFields(address) {
+        const country = address.lines[address.lines.length - 1] || "United Kingdom";
+        const core = address.lines.filter((line) => line !== country);
+        state.manualLabel = address.label || "";
+        state.manualLine1 = core[0] || "";
+        state.manualLine2 = core.length > 3 ? core[1] || "" : "";
+        state.manualCity = core.length > 2 ? core[core.length - 2] || "" : core[1] || "";
+        state.manualPostcode = core.length > 1 ? core[core.length - 1] || "" : "";
+        state.manualCountry = country || "United Kingdom";
+      }
+
+      function addressFromManual(destination, id) {
+        const label = state.manualLabel.trim() || (destination === "direct" ? "Recipient" : "New address");
+        const lines = [
+          state.manualLine1.trim(),
+          state.manualLine2.trim(),
+          state.manualCity.trim(),
+          state.manualPostcode.trim(),
+          state.manualCountry.trim() || "United Kingdom"
+        ].filter(Boolean);
+
+        return {
+          id,
+          label,
+          lines: lines.length ? lines : ["12 Back Hill,", "Manchester", "EC1R 5EN", "United Kingdom"]
+        };
+      }
+
+      function addressSummary() {
+        const address = findAddressById(state.selectedAddress);
+        return address.lines
+          .filter((line) => line !== "United Kingdom")
+          .join(" ")
+          .replace(/\s*,\s*/g, ", ")
+          .replace(/\s+/g, " ")
+          .replace(/,\s*$/, "");
+      }
+
+      function addressBookLines(address) {
+        const lines = address.lines.filter(Boolean);
+        const country = lines[lines.length - 1] === "United Kingdom" ? lines.pop() : "";
+        const postcode = lines.pop() || "";
+        const city = lines.pop() || "";
+        const firstLine = lines
+          .map((line) => line.replace(/,\s*$/, ""))
+          .join(", ")
+          .replace(/\s*,\s*/g, ", ")
+          .replace(/\s+/g, " ")
+          .replace(/,\s*$/, "");
+        const secondLine = [city, postcode, country].filter(Boolean).join(", ");
+        return [firstLine, secondLine].filter(Boolean);
+      }
+
+      function selectedAddressLabel() {
+        const address = findAddressById(state.selectedAddress);
+        return state.destination === "direct" ? "Sending direct" : `Sending to my ${address.label.toLowerCase()} address`;
+      }
+
+      function timingSummary() {
+        if (state.timing === "flexible") return "I'm flexible, delivered in 1-3 days";
+        if (state.timing === "date") return dates[state.selectedDate].join(" ").replace("&pound;", "GBP ");
+        return "As soon as possible, tracked delivery";
+      }
+
+      function readableTimingSummary() {
+        if (state.timing === "flexible") return "Delivering package flexibly in 1-3 days";
+        if (state.timing === "date") return `Delivering package on ${dates[state.selectedDate][0]} ${dates[state.selectedDate][1]}`;
+        return "Delivering package as soon as possible";
+      }
+
+      function filteredContacts() {
+        const query = normalize(state.search);
+        if (!query) return contacts;
+        return contacts.filter((contact) => normalize(contact.name).startsWith(query));
+      }
+
+      function firstCompletion() {
+        const query = normalize(state.search);
+        if (!query) return "";
+        const match = filteredContacts()[0];
+        return match ? match.name : "";
+      }
+
+      function exactContactMatch() {
+        const query = normalize(state.search);
+        return contacts.find((contact) => normalize(contact.name) === query);
+      }
+
+      function contactSummary() {
+        if (!state.selectedContact) return "";
+        const occasion = lowerFirst(state.selectedOccasion);
+        if (state.selectedRelationship && occasion) {
+          return `Shopping for ${state.selectedRelationship}, ${possessive(state.selectedContact)} ${occasion}`;
+        }
+        if (state.selectedRelationship) return `Shopping for ${state.selectedRelationship}, ${state.selectedContact}`;
+        if (occasion) return `Shopping for ${possessive(state.selectedContact)} ${occasion}`;
+        return `Shopping for ${state.selectedContact}`;
+      }
+
+      function fullAddressSummary() {
+        if (state.destination === "direct") return `Sending direct to:\n${addressSummary()}`;
+        return `${selectedAddressLabel()} with a FREE spare envelope at:\n${addressSummary()}`;
+      }
+
+      function plusSummary() {
+        return state.plus === "join" ? "Adding Moonpig Plus for free delivery and member perks" : "Skipping Moonpig Plus";
+      }
+
+      function paymentSummary() {
+        if (state.paymentMethod === "paypal") return "Paying with PayPal";
+        if (state.paymentMethod === "saved") return "Paying with saved Mastercard";
+        return "Paying by card";
+      }
+
+      function filteredLookupAddresses() {
+        const words = normalize(state.findAddressQuery).split(" ").filter(Boolean);
+        if (!words.length) return [];
+        return lookupAddresses.filter((address) => {
+          const haystack = normalize([address.label, ...address.lines].join(" "));
+          return words.every((word) => haystack.includes(word));
+        });
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1700);
+      }
+
+      function stepShell(number, title, summary, body, done, editable, expanded = false) {
+        const dot = done ? "&#10003;" : number;
+        return `
+          <article class="step ${done ? "done" : ""} ${expanded ? "expanded" : ""}" data-step="${number}">
+            <div class="step-inner">
+              <div class="step-rail">
+                <div class="step-dot" aria-hidden="true">${dot}</div>
+              </div>
+              <div>
+                <div class="step-header">
+                  <div>
+                    <p class="step-title">${title}</p>
+                    ${summary ? `<p class="summary">${summary}</p>` : ""}
+                  </div>
+                  ${editable ? `<button class="link-btn" data-action="edit-step" data-step="${number}">Edit</button>` : ""}
+                </div>
+                ${body ? `<div class="panel">${body}</div>` : ""}
+              </div>
+            </div>
+          </article>
+        `;
+      }
+
+      function recipientBody() {
+        const query = state.search;
+        const suggestions = filteredContacts();
+        const completion = firstCompletion();
+        if (state.contactMode === "create") return createContactBody();
+        return `
+          <p class="section-caption">We'll use this to speed up your experience next time.</p>
+          <div class="input-wrap">
+            <input
+              class="text-input"
+              id="contact-search"
+              role="combobox"
+              aria-label="Full Name"
+              aria-expanded="${query ? "true" : "false"}"
+              placeholder="Full Name"
+              value="${escapeHtml(query)}"
+              autocomplete="off"
+            />
+            ${query ? `<button class="clear-btn" aria-label="Clear search" data-action="clear-search">x</button>` : ""}
+          </div>
+          ${query && suggestions.length ? `
+            <ul class="suggestions" id="contact-suggestions" role="listbox">
+              ${suggestions.map((contact, index) => `
+                <li role="option" aria-selected="${index === 0 ? "true" : "false"}">
+                  <button class="suggestion ${index === 0 ? "active" : ""}" data-action="select-contact" data-contact="${escapeHtml(contact.name)}" data-occasion="${escapeHtml(contact.occasion || "")}" data-relationship="${escapeHtml(contact.relationship || "")}">
+                    <span class="avatar">${initials(contact.name)}</span>
+                    <span>${highlight(contact.name, query)}</span>
+                    ${index === 0 ? `<span class="enter-symbol" aria-label="Press Enter">↵</span>` : ""}
+                  </button>
+                </li>
+              `).join("")}
+            </ul>
+          ` : ""}
+          ${query && !suggestions.length ? `
+            <div class="empty-suggestions">
+              <span>We found no matches for: <strong>${escapeHtml(query)}</strong></span>
+              <button class="primary-btn" data-action="create-contact">Add new recipient</button>
+            </div>
+          ` : ""}
+        `;
+      }
+
+      function createContactBody() {
+        return `
+          <div class="create-contact">
+            <div class="two-col">
+              <div class="field">
+                <label for="first-name">First name</label>
+                <input class="text-input" id="first-name" data-field="newFirstName" placeholder="Jane" value="${escapeHtml(state.newFirstName)}" />
+              </div>
+              <div class="field">
+                <label for="last-name">Last name</label>
+                <input class="text-input" id="last-name" data-field="newLastName" placeholder="Doe" value="${escapeHtml(state.newLastName)}" />
+              </div>
+            </div>
+            <div class="optional-questions">
+              <p class="optional-heading">
+                <span>Optional details</span>
+                <span class="help-trigger" tabindex="0" aria-label="Why do we need this data?">?</span>
+                <span class="help-popover" role="dialog" aria-label="Why do we need this data?">
+                  <strong>Why do we need this data?</strong>
+                  <span>We use this data to set up a reminder and make it quicker for you to shop for this event next year.</span>
+                </span>
+              </p>
+              <div>
+                <span class="mini-label">What are you shopping for?</span>
+                <div class="choice-row" role="radiogroup" aria-label="Shopping occasion">
+                  ${occasions.map((occasion) => `
+                    <button class="chip ${state.newOccasion === occasion ? "selected" : ""}" role="radio" aria-checked="${state.newOccasion === occasion}" data-action="select-occasion" data-occasion="${escapeHtml(occasion)}">${escapeHtml(occasion)}</button>
+                  `).join("")}
+                </div>
+              </div>
+              <div>
+                <span class="mini-label">Relationship</span>
+                <div class="choice-row" role="radiogroup" aria-label="Relationship">
+                  ${relationships.map((relationship) => `
+                    <button class="chip ${state.newRelationship === relationship ? "selected" : ""}" role="radio" aria-checked="${state.newRelationship === relationship}" data-action="select-relationship" data-relationship="${escapeHtml(relationship)}">${escapeHtml(relationship)}</button>
+                  `).join("")}
+                </div>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="primary-btn" data-action="save-contact">Continue</button>
+              <button class="ghost-btn" data-action="back-to-search">Back</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function addAddressCard(mode) {
+        const selected = state.addressMode === mode;
+        const lookupMatches = filteredLookupAddresses();
+        const editing = selected && state.editingAddressId;
+        if (!selected) {
+          return `
+            <button class="add-card" data-action="add-address" data-mode="${mode}">
+              <span class="icon-circle">+</span>
+              <span><span class="add-title">Add new address</span></span>
+            </button>
+          `;
+        }
+
+        return `
+          <div class="add-card expanded-card selected">
+            <div class="expanded-head">
+              <span class="icon-circle">+</span>
+              <span><span class="add-title">${editing ? "Edit address" : "Add new address"}</span></span>
+            </div>
+            <div class="form-grid">
+              ${editing ? "" : `<div class="field">
+                <label for="find-address-${mode}">Find address</label>
+                <div class="input-wrap">
+                  <span class="search-icon" aria-hidden="true"></span>
+                  <input class="text-input with-search" id="find-address-${mode}" data-field="findAddressQuery" placeholder="Start typing a postcode or street..." value="${escapeHtml(state.findAddressQuery)}" />
+                </div>
+                ${state.findAddressQuery ? `
+                  <div class="lookup-results">
+                    ${lookupMatches.length ? lookupMatches.map((address) => `
+                      <button class="lookup-card" data-action="select-lookup-address" data-address="${address.id}">
+                        <strong>${escapeHtml(address.lines[0].replace(",", ""))}</strong><br />
+                        <span class="summary">${escapeHtml(address.lines.slice(1).join(", ").replace(",,", ","))}</span>
+                      </button>
+                    `).join("") : `<p class="lookup-empty">No matching addresses. Try a postcode, street, city or building name.</p>`}
+                  </div>
+                ` : ""}
+              </div>`}
+              ${state.manualAddress ? manualAddressFields() : `<button class="inline-link" data-action="manual-address">Enter address manually</button>`}
+              <div class="actions form-actions">
+                <button class="primary-btn" data-action="save-address">Save address</button>
+                <button class="ghost-btn" data-action="cancel-address">Cancel</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function manualAddressFields() {
+        return `
+          <div class="field">
+            <label>Nickname <span class="optional">(optional)</span></label>
+            <input class="text-input" data-field="manualLabel" placeholder="Home, Work..." value="${escapeHtml(state.manualLabel)}" />
+          </div>
+          <div class="field">
+            <label>Address line 1</label>
+            <input class="text-input" data-field="manualLine1" placeholder="12 Back Hill" value="${escapeHtml(state.manualLine1)}" />
+          </div>
+          <div class="field">
+            <label>Address line 2 <span class="optional">(optional)</span></label>
+            <input class="text-input" data-field="manualLine2" value="${escapeHtml(state.manualLine2)}" />
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>City</label>
+              <input class="text-input" data-field="manualCity" placeholder="Manchester" value="${escapeHtml(state.manualCity)}" />
+            </div>
+            <div class="field">
+              <label>Postcode</label>
+              <input class="text-input" data-field="manualPostcode" placeholder="EC1R 5EN" value="${escapeHtml(state.manualPostcode)}" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Country</label>
+            <input class="text-input" data-field="manualCountry" value="${escapeHtml(state.manualCountry)}" />
+          </div>
+        `;
+      }
+
+      function addressCard(address, destination) {
+        const selected = state.selectedAddress === address.id && state.destination === destination;
+        const condensedLines = addressBookLines(address);
+        return `
+          <div class="address-card ${selected ? "selected" : ""}" role="radio" aria-checked="${selected}" tabindex="0" data-action="select-address" data-address="${address.id}" data-destination="${destination}">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span>
+              <span class="card-kicker">${escapeHtml(address.label)}</span>
+              <span class="address-lines">
+                ${condensedLines.map((line) => `<span>${escapeHtml(line)}</span>`).join("")}
+              </span>
+            </span>
+            <button class="dots-btn" aria-label="Address options" data-action="toggle-menu" data-address="${address.id}">
+              <span class="dot-stack" aria-hidden="true"></span>
+            </button>
+            ${state.openMenu === address.id ? `
+              <span class="menu" role="menu">
+                <span role="menuitem"><button data-action="menu-edit" data-address="${address.id}"><span class="menu-icon edit" aria-hidden="true"></span>Edit</button></span>
+                <span role="menuitem"><button data-action="menu-duplicate" data-address="${address.id}"><span class="menu-icon duplicate" aria-hidden="true"></span>Duplicate</button></span>
+                <span role="menuitem"><button class="danger" data-action="menu-delete" data-address="${address.id}"><span class="menu-icon delete" aria-hidden="true"></span>Delete</button></span>
+              </span>
+            ` : ""}
+          </div>
+        `;
+      }
+
+      function branchOption(mode, title, copy) {
+        const selected = state.destination === mode;
+        return `
+          <button class="branch-option ${selected ? "selected" : ""}" data-action="select-destination" data-destination="${mode}" aria-pressed="${selected}">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span>
+              <span class="branch-title">${escapeHtml(title)}</span>
+              ${copy ? `<span class="branch-copy">${escapeHtml(copy)}</span>` : ""}
+            </span>
+          </button>
+        `;
+      }
+
+      function branchAddressPanel(mode, addresses) {
+        if (state.destination !== mode) return "";
+        return `
+          <div class="branch-panel">
+            <div class="address-stack">
+              ${addresses.map((address) => addressCard(address, mode)).join("")}
+              ${addAddressCard(mode)}
+            </div>
+          </div>
+        `;
+      }
+
+      function addressBody() {
+        return `
+          <div class="address-area">
+            <div class="branch-question">
+              <p class="branch-question-title">Where do you want to send the order?</p>
+              <div class="branch-options" role="group" aria-label="Where do you want to send the order?">
+                <div class="branch-item">
+                  ${branchOption("direct", `Send direct to ${state.selectedContact || "Amelia Anderson"}`, "")}
+                  ${branchAddressPanel("direct", directAddresses)}
+                </div>
+                <div class="branch-item">
+                  ${branchOption("mine", "Send to my address", "We'll include a spare envelope so it can be passed it on.")}
+                  ${branchAddressPanel("mine", myAddresses)}
+                </div>
+              </div>
+            </div>
+            <button class="primary-btn continue-btn" data-action="continue-address">Continue</button>
+          </div>
+        `;
+      }
+
+      function timingCard(id, title, subtitle, price) {
+        const selected = id === "join" || id === "skip"
+          ? state.plus === id
+          : id === "card" || id === "paypal" || id === "apple"
+            ? state.paymentMethod === id
+            : state.timing === id;
+        return `
+          <button class="timing-card ${selected ? "selected" : ""}" data-action="select-timing" data-timing="${id}">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span>
+              <span class="timing-title">${title}</span>
+              <span class="timing-subtitle">${subtitle}</span>
+            </span>
+            ${price ? `<span class="price">${price}</span>` : ""}
+          </button>
+        `;
+      }
+
+      function timingBody() {
+        return `
+          <div class="timing-stack">
+            ${timingCard("asap", "As soon as possible", "Tracked delivery", "&pound;2.79")}
+            ${timingCard("flexible", "I'm flexible", "Delivered in 1-3 days", "&pound;1.90")}
+            ${timingCard("date", "Pick a date", "Choose your delivery day", state.timing === "date" ? "&pound;1.90" : "")}
+          </div>
+          ${state.timing === "date" ? `
+            <div class="date-picker">
+              <h3>Delivery Date</h3>
+              <div class="dates" role="radiogroup" aria-label="Delivery date">
+                ${dates.map((date, index) => `
+                  <button class="date-tile ${state.selectedDate === index ? "selected" : ""}" role="radio" aria-checked="${state.selectedDate === index}" data-action="select-date" data-date="${index}">
+                    <span class="date-day">${date[0]}</span>
+                    <span class="date-num">${date[1]}</span>
+                    <span class="date-price">${date[2]}</span>
+                  </button>
+                `).join("")}
+              </div>
+            </div>
+          ` : ""}
+          <button class="primary-btn continue-btn" data-action="continue-timing">Continue</button>
+        `;
+      }
+
+      function plusBody() {
+        return `
+          <div class="plus-card ${state.plus === "join" ? "selected" : ""}" role="radio" aria-checked="${state.plus === "join"}" tabindex="0" data-action="select-plus" data-plus="join">
+            <div class="plus-card-head">
+              <span class="radio-dot" aria-hidden="true"></span>
+              <p class="step-title">Add Moonpig Plus</p>
+            </div>
+            <p class="summary">Unlock free standard card delivery, exclusive reminders and member-only offers.</p>
+            <p class="plus-price">&pound;9.99/year</p>
+            <ul class="plus-list">
+              <li>Free standard card delivery for a year</li>
+              <li>Early access to seasonal offers</li>
+              <li>Smart reminders for birthdays and anniversaries</li>
+            </ul>
+          </div>
+          <div class="timing-stack" role="radiogroup" aria-label="Moonpig Plus" style="margin-top: 10px;">
+            ${timingCard("skip", "No thanks", "Continue without Plus", "")}
+          </div>
+          <button class="primary-btn continue-btn" data-action="continue-plus">Continue</button>
+        `;
+      }
+
+      function paymentBody() {
+        const deliveryPrice = deliveryPrices[state.timing] || deliveryPrices.flexible;
+        const plusPrice = state.plus === "join" ? 9.99 : 0;
+        const total = (cardPrice + deliveryPrice + plusPrice).toFixed(2);
+        return `
+          <div class="payment-stack">
+            <div class="payment-methods" role="radiogroup" aria-label="Payment method">
+              ${paymentMethodOption("saved", "Saved", "")}
+              ${paymentMethodOption("card", "Card", "")}
+              ${paymentMethodOption("paypal", "PayPal", "P")}
+            </div>
+            ${paymentMethodBody()}
+            <div class="payment-card">
+              <div class="order-row"><span>Greetings card</span><span>&pound;${cardPrice.toFixed(2)}</span></div>
+              <div class="order-row"><span>Delivery</span><span>&pound;${deliveryPrice.toFixed(2)}</span></div>
+              ${plusPrice ? `<div class="order-row"><span>Moonpig Plus</span><span>&pound;${plusPrice.toFixed(2)}</span></div>` : ""}
+              <div class="order-row"><span>Total</span><span>&pound;${total}</span></div>
+            </div>
+            <button class="primary-btn continue-btn" data-action="finish">Pay &pound;${total}</button>
+          </div>
+        `;
+      }
+
+      function paymentMethodOption(id, label, icon) {
+        const selected = state.paymentMethod === id;
+        return `
+          <button class="payment-method ${selected ? "selected" : ""}" role="radio" aria-checked="${selected}" data-action="select-payment" data-payment="${id}">
+            <span class="radio-dot" aria-hidden="true"></span>
+            <span>
+              <span class="payment-icon ${id === "paypal" ? "paypal" : id}" aria-hidden="true">${escapeHtml(icon)}</span>
+              <span>${escapeHtml(label)}</span>
+            </span>
+          </button>
+        `;
+      }
+
+      function paymentMethodBody() {
+        if (state.paymentMethod === "saved") {
+          return `
+            <div class="payment-card saved-card">
+              <div class="saved-card-main">
+                <span class="card-brand" aria-hidden="true">MC</span>
+                <span>
+                  <span class="step-title">Mastercard</span>
+                  <span class="summary">•••• 1612</span>
+                </span>
+              </div>
+              <button class="see-more" type="button">See more</button>
+            </div>
+          `;
+        }
+        if (state.paymentMethod === "paypal") {
+          return `
+            <div class="payment-card">
+              <p class="step-title">PayPal</p>
+              <p class="summary">You will review and confirm payment with PayPal after placing the order.</p>
+            </div>
+          `;
+        }
+        return `
+          <div class="payment-card">
+            <div class="field">
+              <label for="card-number">Card number</label>
+              <input class="text-input" id="card-number" inputmode="numeric" placeholder="1234 1234 1234 1234" />
+            </div>
+            <div class="two-col" style="margin-top: 12px;">
+              <div class="field">
+                <label for="expiry">Expiry</label>
+                <input class="text-input" id="expiry" placeholder="MM / YY" />
+              </div>
+              <div class="field">
+                <label for="cvc">CVC</label>
+                <input class="text-input" id="cvc" placeholder="123" />
+              </div>
+            </div>
+            <div class="field" style="margin-top: 12px;">
+              <label for="name-card">Name on card</label>
+              <input class="text-input" id="name-card" placeholder="Amelia Anderson" />
+            </div>
+          </div>
+        `;
+      }
+
+      function basketBody() {
+        return `
+          <div class="basket-page">
+            <img class="basket-content-img" src="assets/basket-content.png" alt="Basket summary, items, recommendations and order total" />
+            <button class="checkout-image-button" data-action="start-checkout" aria-label="Checkout">
+              <img class="checkout-button-img" src="assets/checkout-button.png" alt="Checkout" />
+            </button>
+          </div>
+        `;
+      }
+
+      function updateHeader() {
+        const headerImage = document.getElementById("site-header-image");
+        if (!headerImage) return;
+        if (state.screen === "basket") {
+          headerImage.src = "assets/header.png";
+          headerImage.alt = "Moonpig navigation with search";
+        } else {
+          headerImage.src = "assets/secure-header.png";
+          headerImage.alt = "Moonpig secure checkout header";
+        }
+      }
+
+      function endBody() {
+        return `
+          <div class="end-screen">
+            <h1>End of prototype.</h1>
+            <p>Thank you</p>
+          </div>
+        `;
+      }
+
+      function render() {
+        updateHeader();
+        if (state.screen === "basket") {
+          checkout.innerHTML = basketBody();
+          return;
+        }
+        if (state.screen === "end") {
+          checkout.innerHTML = endBody();
+          return;
+        }
+
+        const recipientDone = Boolean(state.selectedContact) && state.activeStep > 1;
+        const addressDone = state.activeStep > 2;
+        const timingDone = state.activeStep > 3;
+        const plusDone = state.activeStep > 4;
+        const paymentDone = state.activeStep > 5;
+
+        checkout.innerHTML = [
+          `<h1>Delivery</h1>`,
+          stepShell(
+            1,
+            "Who are you buying for ?",
+            recipientDone ? escapeHtml(contactSummary()) : "",
+            state.activeStep === 1 ? recipientBody() : "",
+            recipientDone,
+            recipientDone,
+            state.activeStep === 1
+          ),
+          stepShell(
+            2,
+            "Where shall we send it?",
+            addressDone ? escapeHtml(fullAddressSummary()) : "",
+            state.activeStep === 2 ? addressBody() : "",
+            addressDone,
+            addressDone,
+            state.activeStep === 2
+          ),
+          stepShell(
+            3,
+            "When do you want it delivered?",
+            timingDone ? escapeHtml(readableTimingSummary()) : "",
+            state.activeStep === 3 ? timingBody() : "",
+            timingDone,
+            timingDone,
+            state.activeStep === 3
+          ),
+          stepShell(
+            4,
+            "Join Moonpig Plus?",
+            plusDone ? escapeHtml(plusSummary()) : "",
+            state.activeStep === 4 ? plusBody() : "",
+            plusDone,
+            plusDone,
+            state.activeStep === 4
+          ),
+          stepShell(
+            5,
+            "Payment",
+            paymentDone ? escapeHtml(paymentSummary()) : "",
+            state.activeStep === 5 ? paymentBody() : "",
+            paymentDone,
+            paymentDone,
+            state.activeStep === 5
+          )
+        ].join("");
+
+        const search = document.getElementById("contact-search");
+        if (search && focusSearchAfterRender) {
+          search.focus();
+          search.setSelectionRange(search.value.length, search.value.length);
+        }
+        const addressSearch = document.querySelector('[data-field="findAddressQuery"]');
+        if (addressSearch && focusAddressAfterRender) {
+          addressSearch.focus();
+          addressSearch.setSelectionRange(addressSearch.value.length, addressSearch.value.length);
+        }
+        focusSearchAfterRender = false;
+        focusAddressAfterRender = false;
+      }
+
+      checkout.addEventListener("input", (event) => {
+        if (event.target.id === "contact-search") {
+          state.search = event.target.value;
+          focusSearchAfterRender = true;
+          render();
+        }
+        const field = event.target.dataset.field;
+        if (field && field in state) {
+          state[field] = event.target.value;
+          if (field === "findAddressQuery") {
+            focusAddressAfterRender = true;
+            render();
+          }
+        }
+      });
+
+      checkout.addEventListener("keydown", (event) => {
+        if (event.target.id === "contact-search" && event.key === "Enter" && firstCompletion()) {
+          event.preventDefault();
+          const match = exactContactMatch() || filteredContacts()[0];
+          state.selectedContact = match.name;
+          state.selectedOccasion = match.occasion || "";
+          state.selectedRelationship = match.relationship || "";
+          state.search = match.name;
+          state.activeStep = 2;
+          focusSearchAfterRender = false;
+          render();
+        }
+      });
+
+      checkout.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-action]");
+        if (!target) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const action = target.dataset.action;
+
+        if (action === "start-checkout") {
+          state.screen = "checkout";
+          state.activeStep = 1;
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        if (action === "select-contact") {
+          state.selectedContact = target.dataset.contact;
+          state.selectedOccasion = target.dataset.occasion || "Birthday";
+          state.selectedRelationship = target.dataset.relationship || "";
+          state.search = target.dataset.contact;
+          state.activeStep = 2;
+        }
+
+        if (action === "clear-search") {
+          state.search = "";
+          state.selectedContact = "";
+          state.selectedOccasion = "";
+          state.selectedRelationship = "";
+          state.contactMode = "search";
+          focusSearchAfterRender = true;
+        }
+
+        if (action === "edit-step") {
+          state.activeStep = Number(target.dataset.step);
+          if (state.activeStep === 1) state.search = state.selectedContact || "";
+          if (state.activeStep === 1) state.contactMode = "search";
+          if (state.activeStep === 1) focusSearchAfterRender = true;
+        }
+
+        if (action === "create-contact") {
+          const parts = state.search.trim().split(/\s+/);
+          state.newFirstName = parts[0] || "";
+          state.newLastName = parts.slice(1).join(" ");
+          state.contactMode = "create";
+        }
+
+        if (action === "back-to-search") {
+          state.contactMode = "search";
+        }
+
+        if (action === "select-occasion") {
+          state.newOccasion = state.newOccasion === target.dataset.occasion ? "" : target.dataset.occasion;
+        }
+
+        if (action === "select-relationship") {
+          state.newRelationship = state.newRelationship === target.dataset.relationship ? "" : target.dataset.relationship;
+        }
+
+        if (action === "save-contact") {
+          const fullName = `${state.newFirstName.trim()} ${state.newLastName.trim()}`.trim();
+          if (fullName) {
+            state.selectedContact = fullName;
+            state.selectedOccasion = state.newOccasion;
+            state.selectedRelationship = state.newRelationship;
+            state.search = fullName;
+            if (!contacts.some((contact) => normalize(contact.name) === normalize(fullName))) {
+              contacts.push({ name: fullName, occasion: state.newOccasion, relationship: state.newRelationship });
+            }
+            state.contactMode = "search";
+            state.activeStep = 2;
+          }
+        }
+
+        if (action === "select-destination") {
+          const destination = target.dataset.destination === "direct" ? "direct" : "mine";
+          const targetList = addressListForDestination(destination);
+          state.destination = destination;
+          state.selectedAddress = targetList[0] ? targetList[0].id : "";
+          state.addressMode = "";
+          state.manualAddress = false;
+          state.findAddressQuery = "";
+          state.openMenu = "";
+          resetManualAddressFields();
+        }
+
+        if (action === "add-address") {
+          state.addressMode = target.dataset.mode;
+          state.manualAddress = false;
+          state.findAddressQuery = "";
+          state.openMenu = "";
+          resetManualAddressFields();
+        }
+
+        if (action === "manual-address") {
+          state.manualAddress = true;
+          if (!state.editingAddressId) resetManualAddressFields();
+        }
+
+        if (action === "save-address") {
+          const destination = state.addressMode === "direct" ? "direct" : "mine";
+          const targetList = addressListForDestination(destination);
+          const savedId = state.editingAddressId || `${destination}-manual-${Date.now()}`;
+          const savedAddress = addressFromManual(destination, savedId);
+
+          if (state.editingAddressId) {
+            const existing = findAddressEntry(state.editingAddressId);
+            if (existing) existing.list[existing.index] = savedAddress;
+          } else {
+            targetList.push(savedAddress);
+          }
+
+          state.selectedAddress = savedId;
+          state.destination = destination;
+          state.addressMode = "";
+          state.manualAddress = false;
+          resetManualAddressFields();
+          showToast("Address saved");
+        }
+
+        if (action === "select-lookup-address") {
+          const found = lookupAddresses.find((address) => address.id === target.dataset.address);
+          if (found) {
+            const targetList = state.addressMode === "direct" ? directAddresses : myAddresses;
+            const savedId = `${state.addressMode || "mine"}-${found.id}`;
+            if (!targetList.some((address) => address.id === savedId)) {
+              targetList.push({ ...found, id: savedId });
+            }
+            state.selectedAddress = savedId;
+            state.destination = state.addressMode === "direct" ? "direct" : "mine";
+            state.addressMode = "";
+            state.manualAddress = false;
+            resetManualAddressFields();
+            showToast("Address selected");
+          }
+        }
+
+        if (action === "cancel-address") {
+          state.addressMode = "";
+          state.manualAddress = false;
+          resetManualAddressFields();
+        }
+
+        if (action === "select-address") {
+          state.selectedAddress = target.dataset.address;
+          state.destination = target.dataset.destination || "mine";
+          state.openMenu = "";
+        }
+
+        if (action === "toggle-menu") {
+          state.openMenu = state.openMenu === target.dataset.address ? "" : target.dataset.address;
+        }
+
+        if (action === "menu-edit") {
+          const entry = findAddressEntry(target.dataset.address);
+          state.openMenu = "";
+          if (entry) {
+            state.addressMode = entry.destination;
+            state.editingAddressId = entry.address.id;
+            state.manualAddress = true;
+            state.findAddressQuery = "";
+            seedManualAddressFields(entry.address);
+            showToast("Editing address");
+          }
+        }
+
+        if (action === "menu-duplicate") {
+          const entry = findAddressEntry(target.dataset.address);
+          state.openMenu = "";
+          if (entry) {
+            const copyId = `${entry.destination}-copy-${Date.now()}`;
+            const copy = {
+              ...entry.address,
+              id: copyId,
+              label: `${entry.address.label} copy`,
+              lines: [...entry.address.lines]
+            };
+            entry.list.splice(entry.index + 1, 0, copy);
+            state.selectedAddress = copyId;
+            state.destination = entry.destination;
+            state.addressMode = "";
+            state.manualAddress = false;
+            resetManualAddressFields();
+            showToast("Address duplicated");
+          }
+        }
+
+        if (action === "menu-delete") {
+          const entry = findAddressEntry(target.dataset.address);
+          state.openMenu = "";
+          if (entry) {
+            entry.list.splice(entry.index, 1);
+            if (state.selectedAddress === target.dataset.address) {
+              const fallback = entry.list[entry.index] || entry.list[entry.index - 1] || myAddresses[0] || directAddresses[0];
+              state.selectedAddress = fallback ? fallback.id : "";
+              state.destination = fallback
+                ? (myAddresses.some((address) => address.id === fallback.id) ? "mine" : "direct")
+                : "mine";
+            }
+            if (state.editingAddressId === target.dataset.address) resetManualAddressFields();
+            state.addressMode = "";
+            state.manualAddress = false;
+            showToast("Address deleted");
+          }
+        }
+
+        if (action === "continue-address") {
+          if (!state.selectedAddress || !findAddressEntry(state.selectedAddress)) {
+            showToast("Add or select an address first");
+            render();
+            return;
+          }
+          state.activeStep = 3;
+        }
+
+        if (action === "select-timing") {
+          if (target.dataset.timing === "join" || target.dataset.timing === "skip") {
+            state.plus = target.dataset.timing;
+          } else if (target.dataset.timing === "card" || target.dataset.timing === "paypal" || target.dataset.timing === "apple") {
+            state.paymentMethod = target.dataset.timing;
+          } else {
+            state.timing = target.dataset.timing;
+          }
+        }
+
+        if (action === "select-plus") {
+          state.plus = target.dataset.plus;
+        }
+
+        if (action === "select-payment") {
+          state.paymentMethod = target.dataset.payment;
+        }
+
+        if (action === "select-date") {
+          state.selectedDate = Number(target.dataset.date);
+        }
+
+        if (action === "continue-timing") {
+          state.activeStep = 4;
+        }
+
+        if (action === "continue-plus") {
+          state.activeStep = 5;
+        }
+
+        if (action === "finish") {
+          state.screen = "end";
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
